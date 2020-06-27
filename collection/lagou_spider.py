@@ -11,24 +11,22 @@
 import re
 import json
 import csv
-import time
-import random
 import requests
 import traceback
+from common import util
+from config import config_parse
 
-headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36"
-}
-
+config_parser = config_parse.MyConfigParser()
+headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                         "(KHTML, like Gecko) Chrome/80.0.3987.163 Safari/537.36"}
+section_name = "lagou_nc"  # 切换
+keyword = config_parser.get("lagou", "keyword")
 # root_url
-# root_url = 'https://www.lagou.com/jobs/list_java/p-city_7' # 南昌
-root_url = 'https://www.lagou.com/jobs/list_java/p-city_213'  # 广州
+root_url = config_parser.get(section_name, "url")
 # ajax_url
-# url = "https://www.lagou.com/jobs/positionAjax.json?city=%E5%8D%97%E6%98%8C&needAddtionalResult=false"  # 南昌
-url = "https://www.lagou.com/jobs/positionAjax.json?city=%E5%B9%BF%E5%B7%9E&needAddtionalResult=false"  # 广州
-keyword = 'java'
-file_name = 'lagou_gz.csv'
-csv_path = file_name
+url = config_parser.get(section_name, "ajaxUrl")
+csv_path = config_parser.get(section_name, "filePath")
+
 title_dict = {
         "companyFullName": "公司全称",
         "companySize": "公司规模",
@@ -41,49 +39,6 @@ title_dict = {
         "education": "学历要求",
         "positionAdvantage": "职位优势",
     }
-
-
-def get(dict_args, keys):
-    """
-    get value by key
-    if per key have ['.'], value will be wrong
-
-    For example:
-    like this, sys_args = {'a':{'b':'c'}}
-    if you want to get 'c', just get('a.b', sys_args), then you can get it.
-    :param keys: like 'a.b.c.d...'
-    :param dict_args: not only sys_args, it could be other args, if it's type of dict
-    :return:
-    """
-    key_list = keys.split('.')
-    value = None
-    if len(key_list) > 1:
-        for key in key_list:
-            assert isinstance(dict_args, dict), 'not found keys like {}'.format(keys)
-            if dict_args:
-                value = dict_args.get(key)
-                dict_args = value
-    else:
-        value = dict_args.get(key_list[0])
-    return value
-
-
-def pause_random(integer=1, decimal_scale=1, offset=0.5, tip=None):
-    """
-    range 1.5 - 2.4
-    :param integer:
-    :param decimal_scale:
-    :param offset:
-    :param tip:
-    :return:
-    """
-    decimal = round(random.random(), decimal_scale)
-    sleep_time = integer + decimal + offset
-    time.sleep(sleep_time)
-    if tip:
-        print("{}, wait {}s".format(tip, sleep_time))
-    else:
-        print("wait {}s".format(sleep_time))
 
 
 def create_row(job_info_dict):
@@ -108,7 +63,7 @@ def save_to_csv(rows, write_header=True):
 
 def parse_page_job_json(text):
     json_body = json.loads(text)
-    job_info_list = get(json_body, 'content.positionResult.result')
+    job_info_list = util.get(json_body, 'content.positionResult.result')
     rows = []
     for job_info in job_info_list:
         rows.append(create_row(job_info))
@@ -131,7 +86,7 @@ def execute_on_page(session, page_no):
     rows = parse_page_job_json(res.text)
     write_header = True if page_no == 1 else False
     save_to_csv(rows, write_header=write_header)
-    pause_random()
+    util.pause_random()
 
 
 def normal_gather():
